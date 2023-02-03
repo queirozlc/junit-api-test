@@ -8,6 +8,13 @@ spring:
     password:
     username: sa
     driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
 logging:
   level:
     sql: debug
