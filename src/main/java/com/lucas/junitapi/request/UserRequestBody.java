@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserPostRequestBody {
+public class UserRequestBody {
 	@NotBlank(message = "Name field cannot be empty.")
 	private String name;
 	@NotBlank(message = "E-mail field cannot be empty.")
