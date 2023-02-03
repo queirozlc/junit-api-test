@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -25,7 +26,8 @@ public class UserServiceImpl implements UserService {
 	@Transactional(readOnly = true)
 	@Override
 	public User findById(UUID id) {
-		return repository.findById(id).orElseThrow(() -> new BadRequestException("User not found."));
+		Optional<User> userOptional = repository.findById(id);
+		return userOptional.orElseThrow(() -> new BadRequestException("User not found."));
 	}
 
 	@Override
@@ -43,7 +45,7 @@ public class UserServiceImpl implements UserService {
 		User userToReplace = mapper.toUser(userRequestBody);
 
 		if (!userToReplace.getEmail().equals(userToBeUpdated.getEmail()) &&
-		repository.existsByEmail(userToReplace.getEmail())) {
+				repository.existsByEmail(userToReplace.getEmail())) {
 			throw new BadRequestException("Already exists a user with this email.");
 		}
 
