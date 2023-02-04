@@ -13,15 +13,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
 class UserServiceImplTest {
@@ -70,8 +70,8 @@ class UserServiceImplTest {
 			service.findById(ID);
 		}
 		catch (Exception ex) {
-			assertEquals(ex.getMessage(), USER_NOT_FOUND);
-			;
+			assertEquals(USER_NOT_FOUND, ex.getMessage());
+
 		}
 	}
 
@@ -101,8 +101,7 @@ class UserServiceImplTest {
 			service.createUser(userRequestBody);
 		}
 		catch (Exception ex) {
-			assertEquals(ex.getMessage(),
-					"Already exists a User with this email.");
+			assertEquals("Already exists a User with this email.", ex.getMessage());
 			assertEquals(BadRequestException.class, ex.getClass());
 		}
 	}
