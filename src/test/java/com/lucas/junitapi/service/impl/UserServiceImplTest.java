@@ -5,6 +5,7 @@ import com.lucas.junitapi.exception.bad_request.BadRequestException;
 import com.lucas.junitapi.mapper.UserMapper;
 import com.lucas.junitapi.repository.UserRepository;
 import com.lucas.junitapi.request.UserRequestBody;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,7 +32,7 @@ class UserServiceImplTest {
 	public static final String PASSWORD = "user";
 	public static final String USER_NOT_FOUND = "User not found.";
 	public static User user;
-	public static UserRequestBody dto;
+	public static UserRequestBody userRequestBody;
 	public static Optional<User> userOptional;
 
 	@InjectMocks
@@ -64,31 +68,130 @@ class UserServiceImplTest {
 
 		try {
 			service.findById(ID);
-		}catch (Exception ex) {
-			assertEquals(ex.getMessage(), USER_NOT_FOUND);;
+		}
+		catch (Exception ex) {
+			assertEquals(ex.getMessage(), USER_NOT_FOUND);
+			;
 		}
 	}
 
 	@Test
-	void createUser() {
+	@DisplayName("save and create user when successful")
+	void save_CreateUserWhenSuccessful() {
+		when(mapper.toUser(any(UserRequestBody.class))).thenReturn(user);
+		when(repository.existsByEmail(anyString())).thenReturn(false);
+		when(repository.save(any(User.class))).thenReturn(user);
+
+		User response = service.createUser(userRequestBody);
+
+		assertNotNull(response);
+		assertNotNull(response.getId());
+		assertEquals(User.class, response.getClass());
+		assertEquals(ID, response.getId());
+		verify(repository, times(1)).save(user);
 	}
 
 	@Test
-	void updateUser() {
+	@DisplayName("throw bad request when create user with existent email.")
+	void save_ThrowBadRequestExceptionWhenCreateUserWithExistentEmail() {
+		when(mapper.toUser(any(UserRequestBody.class))).thenReturn(user);
+		when(repository.existsByEmail(anyString())).thenReturn(true);
+
+		try {
+			service.createUser(userRequestBody);
+		}
+		catch (Exception ex) {
+			assertEquals(ex.getMessage(),
+					"Already exists a User with this email.");
+			assertEquals(BadRequestException.class, ex.getClass());
+		}
+	}
+
+	@Test
+	@DisplayName("save and update a user when successful")
+	void save_UpdateUserWhenSuccessful() {
+		when(repository.findById(any(UUID.class))).thenReturn(userOptional);
+		when(mapper.toUser(any(UserRequestBody.class))).thenReturn(user);
+		when(repository.existsByEmail(anyString())).thenReturn(false);
+		when(repository.save(any(User.class))).thenReturn(user);
+		user.setEmail("update@email.com");
+
+		User response = service.updateUser(userRequestBody, ID);
+
+		assertEquals(User.class, response.getClass());
+		assertEquals(ID, response.getId());
+		assertEquals("update@email.com", response.getEmail());
+		verify(repository, times(1)).save(user);
+	}
+
+	@Test
+	@DisplayName("throw bad request when update user with email existent")
+	void throw_BadRequestException_WhenUpdateUserWithExistentEmail() {
+		when(repository.findById(any(UUID.class))).thenReturn(userOptional);
+		when(mapper.toUser(any(UserRequestBody.class))).thenReturn(user);
+		when(repository.existsByEmail(anyString())).thenReturn(true);
+
+		try {
+			service.updateUser(userRequestBody, ID);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals("Already exists a user with this email.",
+					ex.getMessage());
+		}
 	}
 
 	@Test
 	@DisplayName("find All users existent.")
-	void findAll() {
+	void select_FindAllUsersExistent_whenSuccessful() {
+		when(repository.findAll()).thenReturn(List.of(user));
+		List<User> users = service.findAll();
+		assertEquals(User.class, users.get(0).getClass());
+		assertEquals(1, users.size());
+		assertEquals(ID, users.get(0).getId());
+		assertEquals(EMAIL, users.get(0).getEmail());
 	}
 
 	@Test
-	void deleteUserById() {
+	@DisplayName("return empty list when there's no users")
+	void select_findAll_ReturnsEmptyList_WhenTheresNoUsers() {
+		when(repository.findAll()).thenReturn(new ArrayList<>());
+
+		List<User> users = service.findAll();
+
+		assertEquals(0, users.size());
+		Assertions.assertThat(users).isEmpty();
+	}
+
+
+	@Test
+	@DisplayName("Removes user when find by id.")
+	void deleteUserByIdWhenSuccessful() {
+		when(repository.findById(any(UUID.class))).thenReturn(userOptional);
+
+		service.deleteUserById(ID);
+
+		verify(repository, times(1)).delete(any(User.class));
+	}
+
+	@Test
+	@DisplayName("Throw bad request when not found a respective user to remove.")
+	void delete_ThrowBadRequestExceptionWhenDeleteWhereNoUserWasFound() {
+		when(repository.findById(any(UUID.class)))
+				.thenThrow(new BadRequestException(USER_NOT_FOUND));
+
+		try {
+			service.deleteUserById(ID);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(USER_NOT_FOUND, ex.getMessage());
+		}
 	}
 
 	private void initUsers() {
 		user = new User(ID, NAME, EMAIL, PASSWORD);
 		userOptional = Optional.of(new User(ID, NAME, EMAIL, PASSWORD));
-		dto = new UserRequestBody(NAME, EMAIL, PASSWORD);
+		userRequestBody = new UserRequestBody(NAME, EMAIL, PASSWORD);
 	}
 }
